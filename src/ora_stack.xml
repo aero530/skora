@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<image version="0.0.3" w="{width}" h="{height}" xres="{resolution}" yres="{resolution}">
+  <stack>
+    {layers}
+  </stack>
+</image>

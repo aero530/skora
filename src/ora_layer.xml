@@ -1,0 +1,1 @@
+<layer src="data/layer{layer_number}.png" opacity="{opacity}" x="{x_pos}" y="{y_pos}" name="Paint Layer {layer_number}" visibility="visible" composite-op="svg:src-over"/>
