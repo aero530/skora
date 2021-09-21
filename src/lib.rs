@@ -28,7 +28,6 @@ use crate::tiff_types::{Data, Ifd};
 
 pub mod endian_rw;
 
-
 /// Convert a Sketchbook Tiff file to an Open Raster file
 ///
 /// # Arguments
@@ -40,9 +39,9 @@ pub mod endian_rw;
 /// # Returns
 ///
 /// * Ok or error
-/// 
+///
 /// # Example
-/// 
+///
 /// ```rust
 /// use std::error::Error;
 /// use skora;
@@ -247,7 +246,9 @@ pub fn ifd_to_ora_element(
 /// # Returns
 ///
 /// * PNG file of the image stored as a vector of u8 bytes
-pub fn image_to_buf(input: ImageBuffer<image::Rgba<u8>, Vec<u8>>) -> Result<Vec<u8>, Box<dyn Error>> {
+pub fn image_to_buf(
+    input: ImageBuffer<image::Rgba<u8>, Vec<u8>>,
+) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut buf: Vec<u8> = vec![];
     let img: DynamicImage = DynamicImage::ImageRgba8(input);
     img.write_to(&mut buf, image::ImageOutputFormat::Png)?;

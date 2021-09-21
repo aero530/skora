@@ -13,22 +13,9 @@
 use std::collections::BTreeMap;
 use std::error::Error;
 
-use crate::endian_rw::{
-    Endian,
-    order_read,
-    order_write_16,
-    order_write_32,
-    order_write_64
-};
+use crate::endian_rw::{order_read, order_write_16, order_write_32, order_write_64, Endian};
 
-use crate::tiff_types::{
-    Info,
-    Ifd,
-    Tag,
-    Data,
-    DataType,
-};
-
+use crate::tiff_types::{Data, DataType, Ifd, Info, Tag};
 
 /// Read the non-image data from a TIFF.
 ///
@@ -101,7 +88,6 @@ pub fn read_tiff(file: &[u8]) -> Result<(Info, Vec<Ifd>), String> {
     Ok((info, ifd_list))
 }
 
-
 /// Read an IFD and any subIFDs.
 ///
 /// # Arguments
@@ -153,6 +139,7 @@ pub fn read_ifd(
         let data: Data;
         let mut data_tmp: u64 = 0;
         let mut data_length = 0;
+
         match info.big_tiff {
             true => {
                 tag = order_read(info.endian, &file[offset..offset + 2], 2);
@@ -195,7 +182,7 @@ pub fn read_ifd(
             }
         }
 
-        let data_element_size = data.element_size_in_bytes();
+        let data_element_size = datatype.element_size_in_bytes();
         let mut tag_info: Tag = Tag {
             count,
             data,
@@ -242,7 +229,7 @@ pub fn read_ifd(
 pub fn read_ifd_tag_data(file: &[u8], info: &mut Info, ifd: &mut Ifd, ifd_list: &mut Vec<Ifd>) {
     for (tag_num, tag_info) in ifd.tags.iter_mut() {
         let tag = *tag_num;
-        let type_size = tag_info.data.element_size_in_bytes();
+        let type_size = tag_info.datatype.element_size_in_bytes();
 
         // second param is the default value in case offset doesnt exist
         let pos = tag_info.offset.unwrap_or(tag_info.datapos);
@@ -442,7 +429,7 @@ pub fn copy_ifd(image: &mut Vec<u8>, ifd: Ifd, ifd_pointer: usize, source: &[u8]
                             panic!()
                         }
                     }
-                    _ => vec![tag_info.data.element_size_in_bytes() as u32; count as usize],
+                    _ => vec![tag_info.datatype.element_size_in_bytes() as u32; count as usize],
                 };
 
                 let offsets_list = match data {
@@ -476,7 +463,7 @@ pub fn copy_ifd(image: &mut Vec<u8>, ifd: Ifd, ifd_pointer: usize, source: &[u8]
         order_write_16(
             ifd.endian,
             &mut tag_record,
-            tag_info.data.type_tiff_id() as u16,
+            tag_info.datatype.type_tiff_id() as u16,
         );
         match tag_data_length {
             4 => {

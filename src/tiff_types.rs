@@ -5,13 +5,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::endian_rw::{
-    Endian,
-    order_read,
-    order_write_8,
-    order_write_16,
-    order_write_32,
-};
+use crate::endian_rw::{order_read, order_write_16, order_write_32, order_write_8, Endian};
 
 /// Top level meta data about the Sketchbook tiff image file.
 #[derive(Clone, Debug)]
@@ -52,7 +46,7 @@ pub struct Ifd {
 #[derive(Clone, Debug)]
 pub struct Tag {
     /// The number of elements in the tag.  For most numeric values, this is the total number of entries.  For rational, this is
-    /// the number of pairs of entries.  For ascii, this is the length in bytes including a terminating null.  For undefined, this is the length in bytes.
+    /// the number of pairs of entries.  For ascii, this is the length in bytes including a terminating null.
     pub count: u64,
     /// The data this tag refers to
     pub data: Data,
@@ -73,7 +67,7 @@ pub enum DataType {
     Ascii,
     Short,
     Long,
-    Rational
+    Rational,
 }
 
 impl From<u16> for DataType {
@@ -85,11 +79,36 @@ impl From<u16> for DataType {
             3 => DataType::Short,
             4 => DataType::Long,
             5 => DataType::Rational,
-            _ => panic!()
+            _ => panic!(),
         }
     }
 }
 
+impl DataType {
+    /// Return the number of u8 bytes each item takes in raw data form (as stored in the tiff tag)
+    pub fn element_size_in_bytes(&self) -> u64 {
+        match self {
+            DataType::Byte => 1,
+            DataType::Ascii => 1,
+            DataType::Short => 2,
+            DataType::Long => 4,
+            DataType::Rational => 8,
+        }
+    }
+}
+
+impl DataType {
+    /// Return the integer used in the tiff spec to represent the type of data stored in this value
+    pub fn type_tiff_id(&self) -> u64 {
+        match self {
+            DataType::Byte => 1,
+            DataType::Ascii => 2,
+            DataType::Short => 3,
+            DataType::Long => 4,
+            DataType::Rational => 5,
+        }
+    }
+}
 
 /// Enum to store data from the tag fields.  Fields in general are arrays (vecs) of data
 #[derive(Clone, Debug)]
@@ -202,31 +221,3 @@ impl Data {
         }
     }
 }
-
-impl Data {
-    /// Return the number of u8 bytes each item takes in raw data form (as stored in the tiff tag)
-    pub fn element_size_in_bytes(&self) -> u64 {
-        match self {
-            Data::Byte(_) => 1,
-            Data::Ascii(_) => 1,
-            Data::Short(_) => 2,
-            Data::Long(_) => 4,
-            Data::Rational(_) => 8,
-        }
-    }
-}
-
-impl Data {
-    /// Return the integer used in the tiff spec to represent the type of data stored in this value
-    pub fn type_tiff_id(&self) -> u64 {
-        match self {
-            Data::Byte(_) => 1,
-            Data::Ascii(_) => 2,
-            Data::Short(_) => 3,
-            Data::Long(_) => 4,
-            Data::Rational(_) => 5
-        }
-    }
-}
-
-
