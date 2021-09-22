@@ -15,9 +15,11 @@ use hex::FromHex;
 use image::load_from_memory;
 use image::{DynamicImage, GenericImageView, ImageBuffer};
 use pretty_hex::simple_hex;
+use log::{info,debug,trace,error};
 
 use std::fs;
 use std::path::Path;
+use std::io::prelude::*;
 
 pub mod ora;
 use crate::ora::{Element, Ora};
@@ -51,14 +53,16 @@ pub mod endian_rw;
 ///     skora::convert_file(path_string)?;
 /// }
 /// ```
-pub fn convert_file(file_path_string: String) -> Result<String, Box<dyn Error>> {
+pub fn convert_file(file_path_string: String, export_tiff: bool) -> Result<String, Box<dyn Error>> {
     let file_path = Path::new(&file_path_string);
     let file = fs::read(file_path).unwrap();
 
     let (info, ifds) = tiff::read_tiff(&file).unwrap();
 
-    println!("  File size : {}", info.size);
-    println!("  Header : {:?}", simple_hex(&info.header));
+    info!("File size : {}", info.size);
+    debug!("Header : {:?}", simple_hex(&info.header));
+    trace!("tiff info : {:#?}",info);
+    trace!("tiff ifds : {:#?}",ifds);
 
     let images: Vec<Vec<u8>> = tiff::get_layers(ifds.clone(), &file)?;
 
@@ -67,6 +71,25 @@ pub fn convert_file(file_path_string: String) -> Result<String, Box<dyn Error>> 
     // iterate through the list of images backwards as sketchbook saved the layers with the bottom most layer first in the image.
     // this is so we end up with the right order in the ora file.
     for (idx, image_file) in images.iter().rev().enumerate() {
+
+        if export_tiff {
+            // get file name without path info
+            let layer_stem = file_path.file_stem().unwrap().to_str().unwrap();
+
+            // get file path and add 'layers' directory to it
+            let layer_parent = file_path.parent().unwrap().clone().join("layers");
+
+            // create the layers directory if it doesn't exist
+            fs::create_dir_all(layer_parent.clone())?;
+
+            // create the file path for this layer
+            let layer_path = layer_parent.join(format!("{}_layer_{}.tiff",layer_stem,idx));
+
+            debug!("Writing tiff layer to {:?}",layer_path);
+            let mut layer_file = std::fs::File::create(layer_path).unwrap();
+            layer_file.write_all(image_file)?;
+        }
+
         let ifd = &ifds[ifds.len() - 1 - idx];
 
         match ifd_to_ora_element(idx, ifd, image_file)? {
@@ -103,7 +126,7 @@ pub fn convert_file(file_path_string: String) -> Result<String, Box<dyn Error>> 
 pub fn ifd_to_ora_element(
     layer_number: usize,
     ifd: &Ifd,
-    image_file: &[u8],
+    image_file: &[u8]
 ) -> Result<ora::Element, Box<dyn Error>> {
     let mut is_composite = false;
     let mut is_thumbnail = false;
@@ -129,7 +152,7 @@ pub fn ifd_to_ora_element(
         if thing[0] == 1 {
             is_thumbnail = true;
         } else {
-            println!("  THERE WAS AN ERROR");
+            error!("  THERE WAS AN ERROR");
         }
     }
 
@@ -138,7 +161,7 @@ pub fn ifd_to_ora_element(
         Ok(file) => file,
         Err(error) => {
             // if we can't load the image then make a small image file so we can keep processing the rest of the layers
-            println!("{}", error);
+            error!("{}", error);
             let i = ImageBuffer::new(10, 10);
             let img: DynamicImage = DynamicImage::ImageRgba8(i);
             img
@@ -146,7 +169,7 @@ pub fn ifd_to_ora_element(
     };
 
     if is_thumbnail {
-        println!("    This is a reduced resolution image (thumbnail)");
+        trace!("This is a reduced resolution image (thumbnail)");
         Ok(ora::Element::Thumbnail(image_to_buf(image.to_rgba8())?))
     } else {
         let mut alias: String;
@@ -162,12 +185,12 @@ pub fn ifd_to_ora_element(
         }
 
         if is_composite {
-            println!("    This is a composite image ifd");
+            trace!("This is a composite image ifd");
             let layer_count = alias_values[0];
             let current_layer = alias_values[1];
             let background_color = alias_values[2];
             let reduced_image_count = alias_values[3];
-            println!("      LayerCount: {}, CurrentLayer: {}, BackgroundColor: {}, ReducedImageCount: {}", layer_count, current_layer,background_color, reduced_image_count);
+            info!("LayerCount: {}, CurrentLayer: {}, BackgroundColor: {}, ReducedImageCount (# thumbnails): {}", layer_count, current_layer,background_color, reduced_image_count);
 
             let colors = <[u8; 4]>::from_hex(background_color).expect("Decoding failed"); // this is ARGB from the tiff tag data per Alias Layer Metadata
 
@@ -190,7 +213,7 @@ pub fn ifd_to_ora_element(
                 background,
             )))
         } else {
-            println!("    This is a layer ifd");
+            trace!("This is a layer ifd");
             let layer_opacity = alias_values[0];
             let layer_fill_color = alias_values[1];
             let layer_visible = alias_values[2];
@@ -198,7 +221,7 @@ pub fn ifd_to_ora_element(
             let layer_name_image_present = alias_values[4];
             let visibility_channel_count = alias_values[5];
             let mask_layer_count = alias_values[6];
-            println!("      layer_opacity: {}, layer_fill_color: {}, layer_visible: {}, layer_locked: {}, layer_name_image_present: {}, visibility_channel_count: {}, mask_layer_count: {}", layer_opacity, layer_fill_color, layer_visible, layer_locked, layer_name_image_present, visibility_channel_count, mask_layer_count);
+            debug!("Layer Opacity: {}, Layer Fill Color: {}, Layer Visible: {}, Layer Locked: {}, Layer Name Image Present: {}, Visibility Channel Count: {}, Mask Layer Count: {}", layer_opacity, layer_fill_color, layer_visible, layer_locked, layer_name_image_present, visibility_channel_count, mask_layer_count);
 
             let mut x_pos: f64 = 0.0;
             let mut y_pos: f64 = 0.0;

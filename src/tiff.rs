@@ -12,6 +12,7 @@
 
 use std::collections::BTreeMap;
 use std::error::Error;
+use log::{error};
 
 use crate::endian_rw::{order_read, order_write_16, order_write_32, order_write_64, Endian};
 
@@ -29,7 +30,6 @@ use crate::tiff_types::{Data, DataType, Ifd, Info, Tag};
 ///
 pub fn read_tiff(file: &[u8]) -> Result<(Info, Vec<Ifd>), String> {
     let file_size = file.len();
-    //println!("File size : {:?} bytes", size);
 
     // read the file header
     let header: Vec<u8> = file[0..4].into();
@@ -197,7 +197,7 @@ pub fn read_ifd(
         }
 
         if ifd.tags.contains_key(&tag) {
-            println!(
+            error!(
                 "Duplicate tag {:?}: data at {:?} and {:?}",
                 tag, ifd.tags[&tag].datapos, tag_info.datapos
             );
@@ -239,7 +239,7 @@ pub fn read_ifd_tag_data(file: &[u8], info: &mut Info, ifd: &mut Ifd, ifd_list: 
         let byte_count = (tag_info.count * type_size) as usize;
 
         if !check_offset(info.size, pos, byte_count as usize) {
-            println!(
+            error!(
                 "OMG Its gone wrong - size {:?} offset {:?} length {:?}",
                 info.size, pos, byte_count
             );
@@ -281,7 +281,7 @@ pub fn check_offset(source_length: usize, offset: usize, length: usize) -> bool 
     let allowed = (offset >= 8) & (offset + length <= source_length);
 
     if !allowed {
-        println!(
+        error!(
             "Cannot read {:?} bytes from desired offset {:?}.",
             length, offset
         );
@@ -555,7 +555,7 @@ pub fn copy_tag_data(
     source_length: usize,
 ) -> Vec<u32> {
     if offsets.len() != lengths.len() {
-        println!("Offsets and byte counts do not correspond.");
+        error!("Offsets and byte counts do not correspond.");
     }
 
     let mut dest_offsets = vec![0; offsets.len()];
