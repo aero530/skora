@@ -62,7 +62,7 @@ pub fn convert_file(file_path_string: String) -> Result<String, Box<dyn Error>> 
 
     let images: Vec<Vec<u8>> = tiff::get_layers(ifds.clone(), &file)?;
 
-    let mut ora = Ora::new();
+    let mut ora = Ora::default();
 
     // iterate through the list of images backwards as sketchbook saved the layers with the bottom most layer first in the image.
     // this is so we end up with the right order in the ora file.
@@ -103,7 +103,7 @@ pub fn convert_file(file_path_string: String) -> Result<String, Box<dyn Error>> 
 pub fn ifd_to_ora_element(
     layer_number: usize,
     ifd: &Ifd,
-    image_file: &Vec<u8>,
+    image_file: &[u8],
 ) -> Result<ora::Element, Box<dyn Error>> {
     let mut is_composite = false;
     let mut is_thumbnail = false;
@@ -149,7 +149,7 @@ pub fn ifd_to_ora_element(
         println!("    This is a reduced resolution image (thumbnail)");
         Ok(ora::Element::Thumbnail(image_to_buf(image.to_rgba8())?))
     } else {
-        let mut alias: String = "".to_string();
+        let mut alias: String;
         let mut alias_values: Vec<&str> = Vec::new();
 
         if ifd.tags.contains_key(&50784) {

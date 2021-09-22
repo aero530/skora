@@ -75,6 +75,12 @@ pub struct Ora {
     pub height: u32,
 }
 
+impl Default for Ora {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Ora {
     /// Create a new open raster image object
     pub fn new() -> Ora {
@@ -132,7 +138,7 @@ impl Ora {
             layer_number = &self.layers[0].layer_number,
             opacity = &self.layers[0].opacity,
             x_pos = &self.layers[0].x_pos,
-            y_pos = self.height - &self.layers[0].y_pos - &self.layers[0].height,
+            y_pos = self.height - self.layers[0].y_pos - self.layers[0].height,
         );
         layers_xml.push_str(&layer_info);
         layers_xml.push('\n');

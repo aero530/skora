@@ -6,8 +6,8 @@
 //! The tiff files from Sketchbook include layers as seperate images (ifds)
 //! in private tiff tags.  Information about the specific tiff format can
 //! be found at https://www.awaresystems.be/imaging/tiff/tifftags/docs/alias.html.
-//! The functionality in this library was inspired
-//! by https://github.com/DigitalSlideArchive/tifftools.
+//! The tiff parsing functionality of https://github.com/DigitalSlideArchive/tifftools 
+//! was referenced when creating parts of this library.
 //!
 
 use std::collections::BTreeMap;
@@ -133,12 +133,12 @@ pub fn read_ifd(
     }
 
     for _entry in 0..(ifd.tag_count) {
-        let mut tag = 0;
-        let mut datatype = DataType::Byte; // initialize data at a byte array.  this gets updated in read_tags
-        let mut count = 0;
+        let tag: u64;
+        let datatype: DataType;
+        let count: u64;
         let data: Data;
-        let mut data_tmp: u64 = 0;
-        let mut data_length = 0;
+        let data_tmp: u64;
+        let data_length: usize;
 
         match info.big_tiff {
             true => {
@@ -384,22 +384,16 @@ pub fn copy_ifd(image: &mut Vec<u8>, ifd: Ifd, ifd_pointer: usize, source: &[u8]
         // count = len(data)
         let count = tag_info.count;
 
-        // 273: {'name': 'StripOffsets', 'datatype': (Datatype.SHORT, Datatype.LONG, Datatype.LONG8), 'bytecounts': 'StripByteCounts', 'desc': 'The byte offset of each strip with respect to the beginning of the TIFF file'},
-        // 279: {'name': 'StripByteCounts', 'datatype': (Datatype.SHORT, Datatype.LONG, Datatype.LONG8), 'desc': 'For each strip, the number of bytes in the strip after compression'},
-        // 288: {'name': 'FreeOffsets', 'datatype': (Datatype.LONG, Datatype.LONG8), 'bytecounts': 'FreeByteCounts', 'desc': 'For each string of contiguous unused bytes in a TIFF file, the byte offset of the string'},
-        // 289: {'name': 'FreeByteCounts', 'datatype': (Datatype.LONG, Datatype.LONG8), 'desc': 'For each string of contiguous unused bytes in a TIFF file, the number of bytes in the string'},
-        // 324: {'name': 'TileOffsets', 'datatype': (Datatype.LONG, Datatype.LONG8), 'bytecounts': 'TileByteCounts', 'desc': 'For each tile, the byte offset of that tile'},
-        // 325: {'name': 'TileByteCounts', 'datatype': (Datatype.LONG, Datatype.LONG8), 'desc': 'For each tile, the number of (compressed) bytes in that tile'},
-        // 513: {'name': 'JPEGIFOffset', 'datatype': (Datatype.LONG, Datatype.LONG8), 'count': 1, 'bytecounts': 'JPEGIFByteCount'},
-        // 514: {'name': 'JPEGIFByteCount', 'datatype': (Datatype.LONG, Datatype.LONG8), 'count': 1},
-        // 519: {'name': 'JPEGQTables', 'datatype': (Datatype.LONG, Datatype.LONG8), 'bytecounts': 64},
-        // 520: {'name': 'JPEGDCTables', 'datatype': (Datatype.LONG, Datatype.LONG8), 'bytecounts': 16 + 17},
-        // 521: {'name': 'JPEGACTables', 'datatype': (Datatype.LONG, Datatype.LONG8), 'bytecounts': 16 + 256},
-
+        // Certain tag types reference other tags for data.  This match performs that mapping
+        // Tag 273:StripOffsets maps to tag 279:StripByteCounts
+        // Tag 288:FreeOffsets maps to tag 289:FreeByteCounts
+        // Tag 324:TileOffsets maps to tag 325:TileByteCounts
+        // Tag 513:JPEGIFOffset maps to tag 514:JPEGIFByteCount
+        // Tag 519:JPEGQTables ref lengths is vec of size count where each value is 4 (Long)
+        // Tag 520:JPEGDCTables ref lengths is vec of size count where each value is 4 (Long)
+        // Tag 521:JPEGACTables ref lengths is vec of size count where each value is 4 (Long)
         match tag_num {
-            // if tag.isOffsetData():
             273 | 288 | 324 | 513 | 519 | 520 | 521 => {
-                // if isinstance(tag.bytecounts, str):
                 let ref_lengths = match tag_num {
                     273 => {
                         if let Data::Long(val) = ifd.tags[&279].data.clone() {
@@ -454,9 +448,7 @@ pub fn copy_ifd(image: &mut Vec<u8>, ifd: Ifd, ifd_pointer: usize, source: &[u8]
             _ => {}
         }
 
-        let mut data_output: Vec<u8> = Vec::new();
-
-        data_output = data.to_vec_u8(ifd.endian);
+        let mut data_output: Vec<u8> = data.to_vec_u8(ifd.endian);
 
         let mut tag_record: Vec<u8> = Vec::new();
         order_write_16(ifd.endian, &mut tag_record, *tag_num as u16);
