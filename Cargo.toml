@@ -8,7 +8,7 @@ homepage = "https://github.com/aero530/skora"
 documentation = "https://docs.rs/skora"
 repository = "https://github.com/aero530/skora"
 readme = "README.md"
-keywords = ["tiff", "sketchbook", "open raster", "ora", "openraster"]
+keywords = ["tiff", "sketchbook", "open-raster", "ora", "openraster"]
 categories = ["multimedia", "multimedia::images", "parsing"]
 
 [dependencies]
