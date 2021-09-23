@@ -5,8 +5,8 @@
 //!
 //! The tiff files from Sketchbook include layers as seperate images (ifds)
 //! in private tiff tags.  Information about the specific tiff format can
-//! be found at https://www.awaresystems.be/imaging/tiff/tifftags/docs/alias.html.
-//! The tiff parsing functionality of https://github.com/DigitalSlideArchive/tifftools 
+//! be found at <https://www.awaresystems.be/imaging/tiff/tifftags/docs/alias.html>.
+//! The tiff parsing functionality of <https://github.com/DigitalSlideArchive/tifftools> 
 //! was referenced when creating parts of this library.
 //!
 

@@ -1,7 +1,7 @@
 //! Open Raster File Format
 //!
 //! Object types and functions needed to generate open raster files.
-//! https://www.openraster.org
+//! <https://www.openraster.org>
 //!
 
 use std::io::Write;
@@ -39,6 +39,11 @@ pub struct Layer {
 
 impl Layer {
     /// Create a new layer object
+    /// 
+    /// # Example
+    /// ```rust
+    /// let layer = Layer::new(1, image, 0.5, 0, 0, 100, 100);
+    /// ```
     pub fn new(
         layer_number: u8,
         image: Vec<u8>,
@@ -76,6 +81,12 @@ pub struct Ora {
 }
 
 impl Default for Ora {
+    /// Create a new instance of Ora with default values
+    ///
+    /// # Example
+    /// ```rust
+    /// let mut ora = Ora::default();
+    /// ```
     fn default() -> Self {
         Self::new()
     }
@@ -83,6 +94,11 @@ impl Default for Ora {
 
 impl Ora {
     /// Create a new open raster image object
+    /// 
+    /// # Example
+    /// ```rust
+    /// let mut ora = Ora::new();
+    /// ```
     pub fn new() -> Ora {
         Ora {
             thumbnail: Vec::new(),
@@ -98,6 +114,15 @@ impl Ora {
     /// # Arguments
     ///
     /// `layer` - Layer to add to the image
+    /// 
+    /// # Example
+    /// ```rust
+    /// let mut ora = Ora::default();
+    /// let image : Vec<u8> = vec![1, 2, 3, 4]; // this needs to be an actual png image
+    /// let layer = Layer::new(1, image, 0.5, 0, 0, 100, 100);
+    /// ora.add_layer(layer);
+    /// 
+    /// ```
     pub fn add_layer(&mut self, layer: Layer) {
         self.layers.push(layer);
     }
@@ -107,6 +132,14 @@ impl Ora {
     /// # Arguments
     ///
     /// `path` - Reference to the path to save the image
+    /// 
+    /// # Example
+    /// ```rust
+    /// let file_path = Path::new("image.ora");
+    /// let mut ora = Ora::new();
+    ///  // Ideally one would do something to put data in the ora here before writing the file out
+    /// ora.write_to_file(&file_path)?;
+    /// ```
     pub fn write_to_file(&self, path: &Path) -> ZipResult<()> {
         let file = std::fs::File::create(&path).unwrap();
 
